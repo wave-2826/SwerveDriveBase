@@ -15,7 +15,9 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc2/command/CommandScheduler.h>
 
-void Robot::RobotInit() {}
+void Robot::RobotInit() {
+  m_container = RobotContainer::GetInstance();
+}
 
 /**
  * This function is called every robot packet, no matter the mode. Use
@@ -61,10 +63,22 @@ void Robot::TeleopInit() {
   }
 }
 
+double Deadband(double x, double deadzone) {
+  if (std::fabs(x) < deadzone)
+    return 0;
+  return x;
+}
+
 /**
  * This function is called periodically during operator control.
  */
-void Robot::TeleopPeriodic() {}
+void Robot::TeleopPeriodic() {
+  double joystickLeftX =  Deadband(m_container->getDriver()->GetLeftX(), 0.07);
+  double joystickLeftY =  Deadband(m_container->getDriver()->GetLeftY(), 0.07);
+  double joystickRightX = Deadband(m_container->getDriver()->GetRightX(), 0.07);
+
+  m_container->m_swerveDrive.DrivePods(joystickLeftX, joystickLeftY, joystickRightX, 0.000002010448);
+}
 
 /**
  * This function is called periodically during test mode.
