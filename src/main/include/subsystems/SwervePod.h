@@ -13,6 +13,10 @@ enum PodMode {
 
 class SwervePod: public frc2::SubsystemBase {
     private:
+
+        rev::SparkMaxRelativeEncoder *m_topEncoder;
+        rev::SparkMaxRelativeEncoder *m_bottomEncoder;
+
         // The motor that drives the top gear.
         rev::CANSparkMax *m_topMotor;
 
@@ -36,7 +40,7 @@ class SwervePod: public frc2::SubsystemBase {
         double m_currentBottomMotorSpeed;
         double m_currentPosition;
         
-        PodMode m_mode;
+        PodMode m_podOperationMode;
         bool m_initialized;
 
     public:
@@ -47,7 +51,9 @@ class SwervePod: public frc2::SubsystemBase {
 
         // A function to set a direction and speed for this swerve pod
         //angle: -180 - 180, speed: -1.00 - 1.00
-        void Drive(frc::SwerveModuleState state);
+        void Drive(frc::SwerveModuleState state, uint8_t direction = 0);
+
+        void Drive(frc::SwerveModuleState state, double xValue, double yValue);
 
         void Periodic() override;
         void SimulationPeriodic() override;

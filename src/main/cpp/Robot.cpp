@@ -11,6 +11,8 @@
 // ROBOTBUILDER TYPE: Robot.
 
 #include "Robot.h"
+#include <cstdio>
+#include <iostream>
 
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc2/command/CommandScheduler.h>
@@ -63,6 +65,7 @@ void Robot::TeleopInit() {
   }
 }
 
+//TODO: move to conversion/util
 double Deadband(double x, double deadzone) {
   if (std::fabs(x) < deadzone)
     return 0;
@@ -73,11 +76,17 @@ double Deadband(double x, double deadzone) {
  * This function is called periodically during operator control.
  */
 void Robot::TeleopPeriodic() {
-  double joystickLeftX =  Deadband(m_container->getDriver()->GetLeftX(), 0.07);
-  double joystickLeftY =  Deadband(m_container->getDriver()->GetLeftY(), 0.07);
-  double joystickRightX = Deadband(m_container->getDriver()->GetRightX(), 0.07);
+  // Forward
+  double leftX =  Deadband(m_container->getDriver()->GetLeftX(), 0.07);
+  double leftY =  Deadband(m_container->getDriver()->GetLeftY(), 0.07);
+  double rightX = Deadband(m_container->getDriver()->GetRightX(), 0.07);
 
-  m_container->m_swerveDrive.DrivePods(joystickLeftX, joystickLeftY, joystickRightX, 0.000002010448);
+  // Debug info
+  //std::printf("Joystick: %f, %f, %f",jsForward, jsStrafe, jsRotation); 
+  //std::cout << std::endl;
+
+  m_container->m_swerveDrive.DrivePods(leftX, leftY, rightX);
+
 }
 
 /**
