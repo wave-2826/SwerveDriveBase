@@ -51,9 +51,9 @@ class SwervePod: public frc2::SubsystemBase {
 
         // A function to set a direction and speed for this swerve pod
         //angle: -180 - 180, speed: -1.00 - 1.00
-        void Drive(frc::SwerveModuleState state, uint8_t direction = 0);
+        void Drive(frc::SwerveModuleState state, double xValue,double yValue);
 
-        void Drive(frc::SwerveModuleState state, double xValue, double yValue);
+        //void Drive(frc::SwerveModuleState state, double xValue, double yValue);
 
         void Periodic() override;
         void SimulationPeriodic() override;

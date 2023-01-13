@@ -111,22 +111,9 @@ void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
     // auto [front, backLeft, backRight] = m_kinematics->ToSwerveModuleStates(speeds);
     auto [front, rear] = m_kinematics->ToSwerveModuleStates(speeds);
 
-    m_frontPod->Drive(front, forward, strafe);
+    m_frontPod->Drive(front, rotation, forward);
 
-    // // Check the direction
-    // if(forward > k_DB){
-    //     // Move forward
-    //     m_frontPod->Drive(front, 1);
-    // }
-    // else if(forward < k_DB){
-    //     // Move backward
-    //     m_frontPod->Drive(front, 2);
-    // }
-    // else{
-    //     // Stop
-    //     m_frontPod->Drive(front, 0);
-    // }
-
+ 
     //m_frontPod->Drive(front);
     //m_rearPod->Drive(rear);
 
