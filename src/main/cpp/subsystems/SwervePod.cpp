@@ -1,6 +1,7 @@
 #include "subsystems/SwervePod.h"
 #include "math.h"
 #include <iostream>
+#include <string>
 
 #include <frc/kinematics/SwerveDriveKinematics.h>
 #include <frc/kinematics/SwerveDriveOdometry.h>
@@ -14,8 +15,27 @@ SwervePod::SwervePod(rev::CANSparkMax *topMotor, rev::CANSparkMax *bottomMotor, 
     m_topEncoder = new rev::SparkMaxRelativeEncoder(m_topMotor->GetEncoder());
     m_bottomEncoder = new rev::SparkMaxRelativeEncoder(m_bottomMotor->GetEncoder());
 
+    // DIO - returns val as a ratio of hi-time v low-time
     m_podEncoder = new frc::DutyCycleEncoder(encoderChannel);
-    m_podEncoder->SetDutyCycleRange(1, 1024);
+    m_podEncoder->SetConnectedFrequencyThreshold(975.6);
+    // range MUST be between 0 and 1 - setting results in NAN
+    // m_podEncoder->SetDutyCycleRange(1/1024, 1023/1024);    
+}
+
+// TODO: Move to a conversion/util file
+// Convert from absolute encoder position to degrees
+double ToDegree(double pos) {
+
+    // double deg_value = pos/1024.0*360.0;
+    double deg_value = pos*360.0;
+
+    return deg_value;
+}
+
+// TODO: Move to a conversion/util file
+// Convert degrees to radians
+double ToRadian(double degrees) {
+    return degrees * (3.14159/180.0);
 }
 
 void SwervePod::Periodic() {
@@ -30,233 +50,180 @@ void SwervePod::SimulationPeriodic() {
 }
 
 void SwervePod::Initialize() {
-    m_podEncoder->Reset();
+    // 0 is mechanical - offsets will have to be set in code - can't use Reset()
+    // m_podEncoder->Reset();
     m_initialized = true;
+    m_counter = 0;
+    m_isReversed = false;
 }
 
-// TODO: Move to a conversion/util file
-// Convert from absolute encoder position to degrees
-double ToDegree(double pos) {
-
-    double deg_value = pos/1024.0*360.0;
-
-    return deg_value;
+int SwervePod::GetCounter() {
+    return m_counter;
 }
 
-// TODO: Move to a conversion/util file
-// Convert degrees to radians
-double ToRadian(double degrees) {
-    return degrees * (3.14159/180.0);
+void SwervePod::SetCounter(int count) {
+    m_counter = count;
 }
 
-void SwervePod::Drive(frc::SwerveModuleState state, uint8_t direction) {
-    //TODO: math to figure out what to set motor speeds to
-    //TODO: gear ratio stuff
+bool SwervePod::GetIsReversed() {
+    return m_isReversed;
+}
 
+void SwervePod::FlipIsReversed(bool state) {
+    m_counter = !state;
+}
+
+void SwervePod::Drive(frc::SwerveModuleState state, double xValue,double yValue) {
     //TODO: set max motor speeds
     double topMotorSpeed = 0;
     double bottomMotorSpeed = 0;
 
+    double topMotorSpeedMove = 0;
+    double bottomMotorSpeedMove = 0;
+    double topMotorSpeedRotate = 0;
+    double bottomMotorSpeedRotate = 0;
+
     double k_stopMargin = 0.01;
     double k_lesserAngleMargin = 0.2;
     double k_greaterAngleMargin = 0.5;
+    double k_reductionFactor = 0.2;
 
-    double current_angle = ToDegree(m_currentPosition);
+    // tracking angles
+    double current_angle = ToDegree(m_podEncoder->GetAbsolutePosition());
+    double desired_angle = state.angle.Degrees().value() + 180;
 
     // optimize state (speed, angle) by minimizing change in heading and possibly reversing speed
+    // state angle (desired) is -180 to 180
+    // encoder angle (current) is 0 - 360
     auto optimizedState = frc::SwerveModuleState::Optimize(state, units::radian_t(ToRadian(current_angle)));
-    double commanded_speed = (optimizedState.speed.value() / (5200.0 * k_gearRatioYaw));
-    if(1 < commanded_speed)
+    double commanded_speed = (state.speed.value() / 5200.0);
+
+    if (1 < commanded_speed)
     {
         commanded_speed = 1;
     }
 
-    switch(direction)
-    {
-        case 0: // Off
-        default:
-            break;
-        case 1: // Forward
-            topMotorSpeed = -commanded_speed;
-            bottomMotorSpeed = -commanded_speed;
-            break;
-        case 2: // Backward
-            topMotorSpeed = commanded_speed;
-            bottomMotorSpeed = commanded_speed;
-            break;
-    }
+    // double angle_delta = fabs(current_angle - desired_angle);
+    double angle_delta = desired_angle - current_angle;
+    double angle_delta_optimized = 0.0;
+    double tuning_value = 1 / 180.0;
+    std::string swerveCase = "DID NOT ENTER";
 
-    m_topMotor->Set(topMotorSpeed);
-    m_bottomMotor->Set(-bottomMotorSpeed);
-
-/******
-
-    // Check how far from the desired angle
-    double delta = (current_angle - (double)optimizedState.angle.Degrees());
-    double unsignedDelta = std::fabs(delta);
-
-    // Debug info
-    //std::printf("position: %f",m_currentPosition); 
-    // std::printf("angles: %f, %f",current_angle, (double)optimizedState.angle.Degrees()); 
-    //std::cout << std::endl;
-
-    switch(m_podOperationMode)
-    {
-        case Pod_Off:
-        default:
-            if ((k_stopMargin <= unsignedDelta) && (unsignedDelta < k_lesserAngleMargin)){
-                // close to desired angle, move forward
-                m_podOperationMode = Pod_Move;
-            } else if (unsignedDelta > k_greaterAngleMargin) {
-                // Way from desired angle rotate then move
-                m_podOperationMode = Pod_Rotate;
-            }
-            break;
-        case Pod_Move:
-            topMotorSpeed = optimizedState.speed.value();
-            bottomMotorSpeed = -optimizedState.speed.value();
-
-            if (k_greaterAngleMargin < unsignedDelta){
-                // desired angle changed while moving, rotate then move
-                m_podOperationMode = Pod_Rotate;
-            }
-
-            if((k_stopMargin >= unsignedDelta) || (0 == optimizedState.speed.value())){
-                m_podOperationMode = Pod_Off;
-            }
-            break;
-        case Pod_Rotate:
-            if(0 < delta){
-                // Turn CW
-                topMotorSpeed = optimizedState.speed.value();
-                bottomMotorSpeed = optimizedState.speed.value();
-            } else{
-                // Turn CCW
-                topMotorSpeed = -optimizedState.speed.value();
-                bottomMotorSpeed = -optimizedState.speed.value();
-            }
-
-            // close to desired angle, move forward
-            if(k_lesserAngleMargin > unsignedDelta){
-                m_podOperationMode = Pod_Move;
-            }
-
-            if((k_stopMargin >= unsignedDelta) || (0 == optimizedState.speed.value())){
-                m_podOperationMode = Pod_Off;
-            }
-          break;
-///        case Pod_RotateAndMove:
-//            topMotorSpeed = optimizedState.speed.value();
-//            bottomMotorSpeed = -optimizedState.speed.value();
-//
-//            if(k_stopMargin >= unsignedDelta)
-//            {
-//                m_podOperationMode = Pod_Off;
-//            }
-//          break;
-    }
-
-    // Debug info
-    // std::printf("motor speed: %f, %f",topMotorSpeed, bottomMotorSpeed); 
-    // std::cout << std::endl;
-
-    //double cmdSpeed = optimizedState.speed.value() * 0.0001;
-    //m_topMotor->Set(cmdSpeed);
-    //m_bottomMotor->Set(-cmdSpeed);
-
-    // m_topMotor->Set(topMotorSpeed);
-    // m_bottomMotor->Set(bottomMotorSpeed);
-
-******/
-    //std::cout << "Connected: " << m_podEncoder->IsConnected() << std::endl;
-    //std::cout << "Channel: " << m_podEncoder->GetSourceChannel() << std::endl;
-    //std::cout << "Position: " << m_podEncoder->GetAbsolutePosition() << std::endl;
-    std::cout << "Speed Cmd: " << commanded_speed << std::endl;
-
-}
-
-void SwervePod::Drive(frc::SwerveModuleState state, double xValue, double yValue){
-    // m_currentPosition = m_podEncoder->GetAbsolutePosition();
-
-    // std::cout << "Get:       " << m_podEncoder->Get() << std::endl;
-    // std::cout << "GetAbsPos: " << m_podEncoder->GetAbsolutePosition() << std::endl;
-    // std::cout << "GetDist:   " << m_podEncoder->GetDistance() << std::endl;
-    // std::cout << "Dist/Rot:  " << m_podEncoder->GetDistancePerRotation() << std::endl;
-    // std::cout << "FPGAIndex: " << m_podEncoder->GetFPGAIndex() << std::endl;
-    // std::cout << "GetFreq:   " << m_podEncoder->GetFrequency() << std::endl;
-    // std::cout << "GetPosOff: " << m_podEncoder->GetPositionOffset() << std::endl;
-    // std::cout << "GetSrcCnl: " << m_podEncoder->GetSourceChannel() << std::endl;
-    // std::cout << "Connected: " << m_podEncoder->IsConnected() << std::endl;
-
-    double topMotorSpeed = 0;
-    double bottomMotorSpeed = 0;
-    double k_maxCommandedSpeed = 0.8;
-    double current_angle = ToDegree(m_currentPosition);
-
-    // optimize state (speed, angle) by minimizing change in heading and possibly reversing speed
-    auto optimizedState = frc::SwerveModuleState::Optimize(state, units::radian_t(ToRadian(current_angle)));
-
-
-    double commanded_speed = (optimizedState.speed.value() / (5200.0 * k_gearRatioYaw));
-    
-    // std::cout << "Top Vel:    " << m_topEncoder->GetVelocity() << std::endl;
-    // std::cout << "Bottom Vel: " << m_bottomEncoder->GetVelocity() << std::endl;
-
-    // std::cout << "CmdSpeed: " << commanded_speed << std::endl;
-
-
-    /******************************************
-
-    if(xValue || yValue){
-        if(0 < xValue){
-            topMotorSpeed = -(commanded_speed + factor);
-            if(k_maxCommandedSpeed < std::abs(topMotorSpeed)){
-                topMotorSpeed = -k_maxCommandedSpeed;
-            }
-            bottomMotorSpeed = -(commanded_speed - factor);
-            if(k_maxCommandedSpeed < std::abs(bottomMotorSpeed)){
-                bottomMotorSpeed = -k_maxCommandedSpeed;
-            }
-        } else {
-            topMotorSpeed = commanded_speed + factor;
-            if(k_maxCommandedSpeed < std::abs(topMotorSpeed)){
-                topMotorSpeed = k_maxCommandedSpeed;
-            }
-            bottomMotorSpeed = commanded_speed - factor;
-            if(k_maxCommandedSpeed < std::abs(bottomMotorSpeed)){
-                bottomMotorSpeed = k_maxCommandedSpeed;
-            }
+    // TODO: fix the thing
+    // If < 45 && not reversed
+    // If > 45 && reversed
+    if (fabs(angle_delta) <= 45.0 || fabs(angle_delta) >= 135.0) {
+        // check if aligned - current angle within margin of error
+        // TODO: Station keep
+        swerveCase = "ALIGNED";
+        // topMotorSpeed = commanded_speed * (1 + 0.05);
+        // bottomMotorSpeed = commanded_speed * (1 - 0.05);
+        double stationKeepTop = (1 - angle_delta * tuning_value);
+        double stationKeepBottom = (1 + angle_delta * tuning_value);
+        if(GetIsReversed()) {
+            stationKeepTop = (1 + angle_delta * tuning_value);
+            stationKeepBottom = (1 - angle_delta * tuning_value);
         }
-    }
-
-**************************************************************/
-
-    if(xValue || yValue){
-        double factor = yValue * 0.01;
-        if(0 < xValue){
-            topMotorSpeed = -(commanded_speed + factor);
-            if(k_maxCommandedSpeed < std::abs(topMotorSpeed)){
-                topMotorSpeed = -k_maxCommandedSpeed;
-            }
-            bottomMotorSpeed = -(commanded_speed - factor);
-            if(k_maxCommandedSpeed < std::abs(bottomMotorSpeed)){
-                bottomMotorSpeed = -k_maxCommandedSpeed;
-            }
+        double divisor = 1;
+        if (fabs(stationKeepTop) > fabs(stationKeepBottom)) {
+            divisor = stationKeepTop / stationKeepBottom;
         } else {
-            topMotorSpeed = commanded_speed + factor;
-            if(k_maxCommandedSpeed < std::abs(topMotorSpeed)){
-                topMotorSpeed = k_maxCommandedSpeed;
-            }
-            bottomMotorSpeed = commanded_speed - factor;
-            if(k_maxCommandedSpeed < std::abs(bottomMotorSpeed)){
-                bottomMotorSpeed = k_maxCommandedSpeed;
-            }
+            divisor = stationKeepBottom / stationKeepTop;
         }
+        if (GetIsReversed()) {
+            topMotorSpeed = commanded_speed * (stationKeepTop  / divisor);
+            bottomMotorSpeed = commanded_speed * (stationKeepBottom / divisor);
+        } else {
+            topMotorSpeed = -commanded_speed * (stationKeepTop  / divisor);
+            bottomMotorSpeed = -commanded_speed * (stationKeepBottom / divisor);
+        }
+        
+    } else if (angle_delta < -90.0) {
+        // check optimal path
+        swerveCase = "CASE: OPTIMIZE < -90";
+        angle_delta_optimized = -(angle_delta + 180.0);
+        FlipIsReversed(m_isReversed);
+        if (!GetIsReversed()) {
+            topMotorSpeed = -commanded_speed * angle_delta_optimized * tuning_value;
+            bottomMotorSpeed = commanded_speed  * angle_delta_optimized * tuning_value;  
+        } else {
+            topMotorSpeed = commanded_speed * angle_delta_optimized * tuning_value;
+            bottomMotorSpeed = -commanded_speed  * angle_delta_optimized * tuning_value;
+        }        
+    } else if (angle_delta > 90.0) {
+        // check optimal path
+        swerveCase = "CASE: OPTIMIZE > 90";
+        angle_delta_optimized = -(angle_delta - 180.0);
+        FlipIsReversed(m_isReversed);
+        if(!GetIsReversed()) {
+            topMotorSpeed = -commanded_speed * angle_delta_optimized * tuning_value;
+            bottomMotorSpeed = commanded_speed  * angle_delta_optimized * tuning_value;
+        } else {
+            topMotorSpeed = commanded_speed * angle_delta_optimized * tuning_value;
+            bottomMotorSpeed = -commanded_speed  * angle_delta_optimized * tuning_value;
+        }        
+    } 
+    else {
+        swerveCase = "ROTATE";
+        if(!GetIsReversed()) {
+            topMotorSpeed = -commanded_speed * angle_delta * tuning_value;
+            bottomMotorSpeed = commanded_speed * angle_delta * tuning_value;
+        } else {
+            // if (angle_delta < 0) {
+            //     angle_delta_optimized = -(angle_delta - 180.0);
+            // }
+            // else {
+            //     angle_delta_optimized = -(angle_delta + 180.0);
+            // }
+            
+            topMotorSpeed = commanded_speed * angle_delta_optimized * tuning_value;
+            bottomMotorSpeed = -commanded_speed * angle_delta_optimized * tuning_value;
+        }        
     }
 
     m_topMotor->Set(topMotorSpeed);
     m_bottomMotor->Set(bottomMotorSpeed);
 
-//    std::cout <<"X: " << xValue <<  "  Y: " << yValue << "  TopSpeed: " << topMotorSpeed << "  BottomSpeed: " << bottomMotorSpeed << std::endl << std::endl;    
-//    std::cout <<"Speed: " << state.speed.value() << "  Optimized: " << optimizedState.speed.value() << std::endl;
+    ///////////////////////////////// TESTING PRINTOUTS ///////////////////////////////////////////////
+
+    if (GetCounter() > 100) {
+
+        std::cout << std::endl;
+        std::cout << swerveCase << std::endl;
+        std::cout << "top motor: " << topMotorSpeed << std::endl;
+        std::cout << "bottom motor: " << bottomMotorSpeed << std::endl;
+
+        std::cout << "commanded speed: " << commanded_speed << std::endl;
+        std::cout << "tuning value: " << tuning_value << std::endl;
+        // commanded_speed * angle_delta_optimized * tuning_value
+
+        // std::cout << std::endl << "COMMANDED SPEED: " << commanded_speed << std::endl << std::endl;
+
+        std::cout << std::endl;
+
+        std::cout << "angle delta: " << angle_delta << std::endl;
+        std::cout << "current angle: " << current_angle << std::endl;  
+        std::cout << "desired angle: " << desired_angle << std::endl;   
+        std::cout << "optimized angle delta: " << angle_delta_optimized << std::endl;    
+
+        // std::cout << "angle delta: " << angle_delta << std::endl;
+        // std::cout << "tuning value : " << tuning_value << std::endl;
+        // std::cout << "Optimized desired Angle: " << optimizedState.angle.Degrees().value() << std::endl;
+
+        // std::cout << "Degrees: " << ToDegree(m_podEncoder->GetAbsolutePosition()) << std::endl;
+        // std::cout << "Radian: " << ToRadian(ToDegree(m_podEncoder->GetAbsolutePosition())) << std::endl;
+
+        // std::cout << "State Speed: " << state.speed.value() << std::endl;
+        // std::cout << "State Angle: " << state.angle.Degrees().value() << std::endl;
+
+        // std::cout << "Optimized Speed: " << optimizedState.speed.value() << std::endl;
+        // std::cout << "Optimized Angle: " << optimizedState.angle.Degrees().value() << std::endl;
+    
+        // std::cout << "X: " << xValue << "Y: " << yValue << " Top: " << topMotorSpeed*k_reductionFactor << "  Bottom: " << bottomMotorSpeed*k_reductionFactor << std::endl << std::endl;    
+        SetCounter(0);
+    } else {
+      int current_count = GetCounter();
+      SetCounter(current_count + 1);  
+    }
+
 }
