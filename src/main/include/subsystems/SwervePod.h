@@ -36,6 +36,9 @@ class SwervePod: public frc2::SubsystemBase {
         double m_desiredTopMotorSpeed;
         double m_desiredBottomMotorSpeed;
 
+        int m_counter;
+        bool m_isReversed;
+
         double m_currentTopMotorSpeed;
         double m_currentBottomMotorSpeed;
         double m_currentPosition;
@@ -52,6 +55,12 @@ class SwervePod: public frc2::SubsystemBase {
         // A function to set a direction and speed for this swerve pod
         //angle: -180 - 180, speed: -1.00 - 1.00
         void Drive(frc::SwerveModuleState state, double xValue,double yValue);
+
+        int GetCounter();
+        void SetCounter(int count);
+
+        bool GetIsReversed();
+        void FlipIsReversed(bool state);
 
         //void Drive(frc::SwerveModuleState state, double xValue, double yValue);
 

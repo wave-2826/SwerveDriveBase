@@ -24,18 +24,11 @@ using namespace frc;
  */
 SwerveDrive::SwerveDrive() {
 
-
     // All swerve module motors
     m_frontTopMotor = new CANSparkMax(58, CANSparkMaxLowLevel::MotorType::kBrushless);
     m_frontBottomMotor = new CANSparkMax(4, CANSparkMaxLowLevel::MotorType::kBrushless);
     m_rearTopMotor = new CANSparkMax(1, CANSparkMaxLowLevel::MotorType::kBrushless);
     m_rearBottomMotor = new CANSparkMax(2, CANSparkMaxLowLevel::MotorType::kBrushless);
-
-
-    //m_leftBackTopMotor = new CANSparkMax(5, CANSparkMaxLowLevel::MotorType::kBrushless);
-    //m_leftBackBottomMotor = new CANSparkMax(6, CANSparkMaxLowLevel::MotorType::kBrushless);
-    //m_rightBackTopMotor = new CANSparkMax(7, CANSparkMaxLowLevel::MotorType::kBrushless);
-    //m_rightBackBottomMotor = new CANSparkMax(8, CANSparkMaxLowLevel::MotorType::kBrushless);
 
     // Individual swerve pod instances
     m_frontPod = new SwervePod(m_frontTopMotor, m_frontBottomMotor, 0);
@@ -47,17 +40,12 @@ SwerveDrive::SwerveDrive() {
     frc::Translation2d m_frontLocation{0.0_m, 0.0_m};
     frc::Translation2d m_rearLocation{0.0_m, 0.0_m};
 
-    // m_topEncoder = new SparkMaxRelativeEncoder(m_frontTopMotor->GetEncoder());
-    // m_bottomEncoder = new SparkMaxRelativeEncoder(m_frontBottomMotor->GetEncoder());
-
-    // frc::Translation2d m_backLeftLocation{-0.381_m, 0.381_m};
-    // frc::Translation2d m_backRightLocation{-0.381_m, -0.381_m};
-
-    //Creating kinematics object using the module locations.
+    // Creating kinematics object using the module locations for 3 pod swerve
     // m_kinematics = new SwerveDriveKinematics<3>{
     //     m_frontLocation, m_backLeftLocation, m_backRightLocation
     // };
 
+    // 2 pod swerve kinematics object using module locations
     m_kinematics = new SwerveDriveKinematics<2>{
         m_frontLocation, m_rearLocation
     };
@@ -93,30 +81,27 @@ double rpmToMps(double rpm, double wheelDiameterMeters) {
 void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
     const double k_gearRatioWheelSpeed = 3.2196;
     const double k_wheelDiameterMeters = 0.0635;
-    // circumference ~ 0.1994911335
+    // circumference value ~0.1994911335
     const double k_wheelCircumferenceMeters = k_wheelDiameterMeters * (double)3.141592653;
     const double k_maxMotorSpeed = 5200.0;
 
     // transforming from pure joystick input into chassisspeeds
     double transform = k_wheelCircumferenceMeters * k_gearRatioWheelSpeed * k_maxMotorSpeed;
-     
-    // frc::ChassisSpeeds speeds{(units::angular_velocity::radians_per_second_t)(forward*transform),
-    //     (units::angular_velocity::radians_per_second_t)(strafe*transform),
-    //     (units::angular_velocity::radians_per_second_t)(rotation*transform)};
 
+    // represents the velocity of the robot chassis
+    // ChassisSpeeds struct represents a velocity w.r.t to the robot frame of reference
     frc::ChassisSpeeds speeds{(units::velocity::meters_per_second_t)(forward*transform),
         (units::velocity::meters_per_second_t)(strafe*transform),
         (units::angular_velocity::radians_per_second_t)(rotation*transform)};
     
+    // returns each pods state (speed, angle)
     // auto [front, backLeft, backRight] = m_kinematics->ToSwerveModuleStates(speeds);
     auto [front, rear] = m_kinematics->ToSwerveModuleStates(speeds);
 
     m_frontPod->Drive(front, rotation, forward);
 
- 
     //m_frontPod->Drive(front);
     //m_rearPod->Drive(rear);
-
     //m_backLeftPod->Drive(backLeft);
     //m_backRightPod->Drive(backRight);
 
