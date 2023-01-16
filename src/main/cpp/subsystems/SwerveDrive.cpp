@@ -18,7 +18,7 @@ using namespace rev;
 using namespace frc;
 
 /**
- * SwerveDrive implementation file
+ * SwerveDrive implementation, schyncronizing individual swerve pods
  *
  * @author 2826WaveRobotics
  */
@@ -31,8 +31,9 @@ SwerveDrive::SwerveDrive() {
     m_rearBottomMotor = new CANSparkMax(2, CANSparkMaxLowLevel::MotorType::kBrushless);
 
     // Individual swerve pod instances
-    m_frontPod = new SwervePod(m_frontTopMotor, m_frontBottomMotor, 0);
-    m_rearPod = new SwervePod(m_rearTopMotor, m_rearBottomMotor, 1);
+    //TODO: Fix this: object of abstract class type "SwervePod" is not allowed: -- pure virtual function "frc2::PIDSubsystem::GetMeasurement" has no overrider -- pure virtual function "frc2::PIDSubsystem::UseOutput" has no overriderC/C++(322)
+    m_frontPod = new SwervePod(m_frontTopMotor, m_frontBottomMotor, 13.7, 45.0, 0);
+    m_rearPod = new SwervePod(m_rearTopMotor, m_rearBottomMotor, 13.7, 45.0, 1);
     //m_backLeftPod = new SwervePod(m_leftBackTopMotor, m_leftBackBottomMotor, 1);
     //m_backRightPod = new SwervePod(m_rightBackTopMotor, m_rightBackBottomMotor, 2);
 
@@ -70,18 +71,9 @@ void SwerveDrive::SimulationPeriodic() {
 
 }
 
-//TODO: move into conversion/util file
-double rpmToMps(double rpm, double wheelDiameterMeters) {
-    double PI = 2 * acos(0.0);
-    double k_wheelCircumferenceMeters = wheelDiameterMeters * PI;
-
-    return rpm * k_wheelCircumferenceMeters / 60;
-}
-
 void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
     const double k_gearRatioWheelSpeed = 3.2196;
     const double k_wheelDiameterMeters = 0.0635;
-    // circumference value ~0.1994911335
     const double k_wheelCircumferenceMeters = k_wheelDiameterMeters * (double)3.141592653;
     const double k_maxMotorSpeed = 5200.0;
 
@@ -90,7 +82,8 @@ void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
 
     // represents the velocity of the robot chassis
     // ChassisSpeeds struct represents a velocity w.r.t to the robot frame of reference
-    frc::ChassisSpeeds speeds{(units::velocity::meters_per_second_t)(forward*transform),
+    // foward is negated to flip the axis of the LX input
+    frc::ChassisSpeeds speeds{(units::velocity::meters_per_second_t)(-forward*transform),
         (units::velocity::meters_per_second_t)(strafe*transform),
         (units::angular_velocity::radians_per_second_t)(rotation*transform)};
     
@@ -98,7 +91,7 @@ void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
     // auto [front, backLeft, backRight] = m_kinematics->ToSwerveModuleStates(speeds);
     auto [front, rear] = m_kinematics->ToSwerveModuleStates(speeds);
 
-    m_frontPod->Drive(front, rotation, forward);
+    m_frontPod->Drive(front);
 
     //m_frontPod->Drive(front);
     //m_rearPod->Drive(rear);

@@ -66,7 +66,14 @@ class SwerveDrive: public frc2::SubsystemBase {
         void Periodic() override;
         void SimulationPeriodic() override;
 
-        // This is meant to take in inputs from the joysticks
+        /**
+         * Function that takes inputs from the joysticks and transforms
+         * the inputs into states (speed, angle) that individual swerve modules will utilize
+         * 
+         * @param foward joystick input from left x-axis (LX)
+         * @param strafe joystick input from left y-axis (LY)
+         * @param rotation joystick input from right x-axis (RX)
+         **/
         void DrivePods(double forward, double strafe, double rotation);
 
         void initialize();

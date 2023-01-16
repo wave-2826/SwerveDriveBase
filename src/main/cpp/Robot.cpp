@@ -77,13 +77,9 @@ double Deadband(double x, double deadzone) {
  */
 void Robot::TeleopPeriodic() {
   // Forward
-  double leftX =  Deadband(m_container->getDriver()->GetLeftX(), 0.07);
-  double leftY =  Deadband(m_container->getDriver()->GetLeftY(), 0.07);
-  double rightX = Deadband(m_container->getDriver()->GetRightX(), 0.07);
-
-  // Debug info
-  //std::printf("Joystick: %f, %f, %f",jsForward, jsStrafe, jsRotation); 
-  //std::cout << std::endl;
+  double leftX =  Deadband(m_container->getDriver()->GetLeftX(), 0.07);  // LX
+  double leftY =  Deadband(m_container->getDriver()->GetLeftY(), 0.07);  // LY
+  double rightX = Deadband(m_container->getDriver()->GetRightX(), 0.07); //RX
 
   m_container->m_swerveDrive.DrivePods(leftX, leftY, rightX);
 
