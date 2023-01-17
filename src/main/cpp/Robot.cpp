@@ -77,6 +77,7 @@ void Robot::TeleopPeriodic() {
   double joystickLeftY =  Deadband(m_container->getDriver()->GetLeftY(), 0.07);
   double joystickRightX = Deadband(m_container->getDriver()->GetRightX(), 0.07);
 
+  // joystick inputs for swerve
   m_container->m_swerveDrive.DrivePods(joystickLeftX, joystickLeftY, joystickRightX, 0.000002010448);
 }
 
