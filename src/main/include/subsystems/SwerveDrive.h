@@ -46,9 +46,14 @@ class SwerveDrive: public frc2::SubsystemBase {
 
         SwervePod *m_rightPod;
         SwervePod *m_leftPod;
-        SwervePod *m_pointPod;          
+        SwervePod *m_pointPod;     
 
     public:
+        // length of the intake side
+        const double robotWidth = 0.717;
+        // length of the point to the midpoint of the intake side
+        const double robotHeight = 0.617;
+
         SwerveDrive();
 
         void Periodic() override;
