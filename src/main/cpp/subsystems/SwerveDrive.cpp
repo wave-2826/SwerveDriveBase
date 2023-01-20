@@ -32,8 +32,8 @@ SwerveDrive::SwerveDrive() {
 
     // Individual swerve pod instances
     //TODO: Fix this: object of abstract class type "SwervePod" is not allowed: -- pure virtual function "frc2::PIDSubsystem::GetMeasurement" has no overrider -- pure virtual function "frc2::PIDSubsystem::UseOutput" has no overriderC/C++(322)
-    m_frontPod = new SwervePod(m_frontTopMotor, m_frontBottomMotor, 13.7, 45.0, 0);
-    m_rearPod = new SwervePod(m_rearTopMotor, m_rearBottomMotor, 13.7, 45.0, 1);
+    m_frontPod = new SwervePod(m_frontTopMotor, m_frontBottomMotor, 1.0, 45.0, 0);
+    m_rearPod = new SwervePod(m_rearTopMotor, m_rearBottomMotor, 1.0, 45.0, 1);
     //m_backLeftPod = new SwervePod(m_leftBackTopMotor, m_leftBackBottomMotor, 1);
     //m_backRightPod = new SwervePod(m_rightBackTopMotor, m_rightBackBottomMotor, 2);
 

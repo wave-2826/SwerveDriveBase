@@ -15,6 +15,8 @@
 class SwervePod: public frc2::PIDSubsystem {
     private:
 
+        frc::PIDController *m_pidController;
+
         rev::SparkMaxRelativeEncoder *m_topEncoder;
         rev::SparkMaxRelativeEncoder *m_bottomEncoder;
 
@@ -27,10 +29,12 @@ class SwervePod: public frc2::PIDSubsystem {
         // The encoder for the wheel position.
         frc::DutyCycleEncoder *m_podEncoder;
 
+        frc::SwerveModuleState m_currentState;
+
         // Desired state -- velocity of wheel in RPM, angle in degrees
         // Angles are measured counter-clockwise, with zero being "robot forward"
 
-        static constexpr const double kP = 0.1;
+        static constexpr const double kP = 1.0;
         static constexpr const double kI = 0.0;
         static constexpr const double kD = 0.0;
 
@@ -40,6 +44,8 @@ class SwervePod: public frc2::PIDSubsystem {
 
         int m_counter;
         bool m_isReversed = false;
+
+        bool m_stateInitialized = false;
 
         double m_currentTopMotorSpeed;
         double m_currentBottomMotorSpeed;
@@ -60,6 +66,11 @@ class SwervePod: public frc2::PIDSubsystem {
 
         // Initialize this module with the details provided by the robot-specific subclass.
         void Initialize(); 
+
+        //pid override functions
+        void UseOutput(double output, double setpoint) override;
+
+        double GetMeasurement() override;
 
         /**
          * Function to set a direction and speed for this swerve pod
