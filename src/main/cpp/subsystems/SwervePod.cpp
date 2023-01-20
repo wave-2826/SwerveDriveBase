@@ -4,7 +4,7 @@
 #include <string>
 
 
-SwervePod::SwervePod(rev::CANSparkMax *topMotor, rev::CANSparkMax *bottomMotor, double turnTuningFactor, double angleOffset, int encoderChannel) : frc2::PIDSubsystem(frc2::PIDController{kP, kI, kD})
+SwervePod::SwervePod(rev::CANSparkMax *topMotor, rev::CANSparkMax *bottomMotor, double turnTuningFactor, double angleOffset, int encoderChannel) 
 {
     m_topMotor = topMotor;
     m_bottomMotor = bottomMotor;
@@ -213,7 +213,7 @@ void SwervePod::Drive(frc::SwerveModuleState state)
     else if (angle_delta < -90.0)
     {
         // check optimal path
-        swerveCase = "CASE: OPTIMIZE < -90";
+        swerveCase = "OPTIMIZE < -90";
 
         FlipIsReversed(m_isReversed);
         if (!GetIsReversed())
@@ -231,7 +231,7 @@ void SwervePod::Drive(frc::SwerveModuleState state)
     else if (angle_delta > 90.0)
     {
         // check optimal path
-        swerveCase = "CASE: OPTIMIZE > 90";
+        swerveCase = "OPTIMIZE > 90";
 
         FlipIsReversed(m_isReversed);
         if (!GetIsReversed())
@@ -256,21 +256,23 @@ void SwervePod::Drive(frc::SwerveModuleState state)
 
     // assign motor speeds
     // TODO: interpolate motor speeds / slowly ramp up + down
-    double interpolatedTopMotorSpeed = LinearInterpolate(GetPreviousTopMotorSpeed(), topMotorSpeed, 0.15);
-    double interpolatedBottomMotorSpeed = LinearInterpolate(GetPreviousBottomMotorSpeed(), bottomMotorSpeed, 0.15);
-    std::cout << "Top:    " << interpolatedTopMotorSpeed << std::endl;
-    std::cout << "Bottom: " << interpolatedBottomMotorSpeed << std::endl;
-    m_topMotor->Set(interpolatedTopMotorSpeed);
-    m_bottomMotor->Set(interpolatedBottomMotorSpeed);
-    SetPreviousTopMotorSpeed(interpolatedTopMotorSpeed);
-    SetPreviousBottomMotorSpeed(interpolatedBottomMotorSpeed);
+    // double interpolatedTopMotorSpeed = LinearInterpolate(GetPreviousTopMotorSpeed(), topMotorSpeed, 0.15);
+    // double interpolatedBottomMotorSpeed = LinearInterpolate(GetPreviousBottomMotorSpeed(), bottomMotorSpeed, 0.15);
+    // m_topMotor->Set(interpolatedTopMotorSpeed);
+    // m_bottomMotor->Set(interpolatedBottomMotorSpeed);
+    // SetPreviousTopMotorSpeed(interpolatedTopMotorSpeed);
+    // SetPreviousBottomMotorSpeed(interpolatedBottomMotorSpeed);
 
+    m_topMotor->Set(topMotorSpeed);
+    m_bottomMotor->Set(bottomMotorSpeed);
 
     ///////////////////////////////// TESTING PRINTOUTS ///////////////////////////////////////////////
 
     // if (GetCounter() > 5)
     // {
 
+    //     std::cout << "Top:    " << interpolatedTopMotorSpeed << std::endl;
+    //     std::cout << "Bottom: " << interpolatedBottomMotorSpeed << std::endl;
     //     std::cout << std::endl;
     //     std::cout << "angle " << current_angle << std::endl;
     //     std::cout << "angle delta " << angle_delta << std::endl;

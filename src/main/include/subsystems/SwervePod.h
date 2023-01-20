@@ -12,7 +12,7 @@
  * 
  * @author 2826WaveRobotics
  **/
-class SwervePod: public frc2::PIDSubsystem {
+class SwervePod {
     private:
 
         rev::SparkMaxRelativeEncoder *m_topEncoder;
@@ -103,7 +103,7 @@ class SwervePod: public frc2::PIDSubsystem {
         double GetPreviousBottomMotorSpeed();
         void SetPreviousBottomMotorSpeed(double value);
 
-        void Periodic() override;
-        void SimulationPeriodic() override;
+        void Periodic(); 
+        void SimulationPeriodic();
 
 };

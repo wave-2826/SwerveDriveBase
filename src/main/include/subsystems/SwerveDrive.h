@@ -35,30 +35,18 @@ class SwerveDrive: public frc2::SubsystemBase {
     // for methods that implement subsystem capabilities
     private:        
 
-        rev::CANSparkMax *m_frontBottomMotor;
-        rev::CANSparkMax *m_frontTopMotor;
-        rev::CANSparkMax *m_rearBottomMotor;
-        rev::CANSparkMax *m_rearTopMotor;
+        rev::CANSparkMax *m_rightBottomMotor;
+        rev::CANSparkMax *m_rightTopMotor;
+        rev::CANSparkMax *m_leftBottomMotor;
+        rev::CANSparkMax *m_leftTopMotor;
+        rev::CANSparkMax *m_pointBottomMotor;
+        rev::CANSparkMax *m_pointTopMotor;
 
-        rev::SparkMaxRelativeEncoder *m_topEncoder;
-        rev::SparkMaxRelativeEncoder *m_bottomEncoder;
+        frc::SwerveDriveKinematics<3> *m_kinematics;
 
-        // rev::CANSparkMax *m_rightFrontBottomMotor;
-        // rev::CANSparkMax *m_rightFrontTopMotor;
-        // rev::CANSparkMax *m_rightBackBottomMotor;
-        // rev::CANSparkMax *m_rightBackTopMotor;
-        // rev::CANSparkMax *m_leftBackBottomMotor;
-        // rev::CANSparkMax *m_leftBackTopMotor;
-
-        // frc::SwerveDriveKinematics<3> *m_kinematics;
-
-        frc::SwerveDriveKinematics<2> *m_kinematics;
-
-        SwervePod *m_frontPod;
-        SwervePod *m_rearPod;
-        //SwervePod *m_frontRightPod;
-        //SwervePod *m_backLeftPod;
-        //SwervePod *m_backRightPod;             
+        SwervePod *m_rightPod;
+        SwervePod *m_leftPod;
+        SwervePod *m_pointPod;          
 
     public:
         SwerveDrive();

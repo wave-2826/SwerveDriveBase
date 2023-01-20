@@ -25,50 +25,44 @@ using namespace frc;
 SwerveDrive::SwerveDrive() {
 
     // All swerve module motors
-    m_frontTopMotor = new CANSparkMax(58, CANSparkMaxLowLevel::MotorType::kBrushless);
-    m_frontBottomMotor = new CANSparkMax(4, CANSparkMaxLowLevel::MotorType::kBrushless);
-    m_rearTopMotor = new CANSparkMax(1, CANSparkMaxLowLevel::MotorType::kBrushless);
-    m_rearBottomMotor = new CANSparkMax(2, CANSparkMaxLowLevel::MotorType::kBrushless);
+    m_rightTopMotor = new CANSparkMax(58, CANSparkMaxLowLevel::MotorType::kBrushless);
+    m_rightBottomMotor = new CANSparkMax(4, CANSparkMaxLowLevel::MotorType::kBrushless);
+    m_leftTopMotor = new CANSparkMax(1, CANSparkMaxLowLevel::MotorType::kBrushless);
+    m_leftBottomMotor = new CANSparkMax(2, CANSparkMaxLowLevel::MotorType::kBrushless);
+    m_pointTopMotor = new CANSparkMax(45, CANSparkMaxLowLevel::MotorType::kBrushless);
+    m_pointBottomMotor = new CANSparkMax(67, CANSparkMaxLowLevel::MotorType::kBrushless);
 
     // Individual swerve pod instances
-    //TODO: Fix this: object of abstract class type "SwervePod" is not allowed: -- pure virtual function "frc2::PIDSubsystem::GetMeasurement" has no overrider -- pure virtual function "frc2::PIDSubsystem::UseOutput" has no overriderC/C++(322)
-    m_frontPod = new SwervePod(m_frontTopMotor, m_frontBottomMotor, 13.7, 45.0, 0);
-    m_rearPod = new SwervePod(m_rearTopMotor, m_rearBottomMotor, 13.7, 45.0, 1);
-    //m_backLeftPod = new SwervePod(m_leftBackTopMotor, m_leftBackBottomMotor, 1);
-    //m_backRightPod = new SwervePod(m_rightBackTopMotor, m_rightBackBottomMotor, 2);
-
+    m_rightPod = new SwervePod(m_rightTopMotor, m_rightBottomMotor, 1.0, 45.0, 0);
+    m_leftPod = new SwervePod(m_leftTopMotor, m_leftBottomMotor, 1.0, 45.0, 1);
+    m_pointPod = new SwervePod(m_pointTopMotor, m_pointBottomMotor, 1.0, 45.0, 2);
+    
     // Locations for the swerve drive modules relative to the robot center.
-    frc::Translation2d m_frontLocation{0.0_m, 0.0_m};
-    frc::Translation2d m_rearLocation{0.0_m, 0.0_m};
+    frc::Translation2d m_rightLocation{0.0_m, 0.0_m};
+    frc::Translation2d m_leftLocation{0.0_m, 0.0_m};
+    frc::Translation2d m_pointLocation{0.0_m, 0.0_m};
 
-    // Creating kinematics object using the module locations for 3 pod swerve
-    // m_kinematics = new SwerveDriveKinematics<3>{
-    //     m_frontLocation, m_backLeftLocation, m_backRightLocation
-    // };
-
-    // 2 pod swerve kinematics object using module locations
-    m_kinematics = new SwerveDriveKinematics<2>{
-        m_frontLocation, m_rearLocation
+    // 3 pod swerve kinematics object using module locations
+    m_kinematics = new SwerveDriveKinematics<3>{
+        m_rightLocation, m_leftLocation, m_pointLocation
     };
-
 
     SetName("SwerveDrive");
     SetSubsystem("SwerveDrive");
-
 }
 
 void SwerveDrive::initialize(){
-    m_frontPod->Initialize();
+    m_rightPod->Initialize();
+    m_leftPod->Initialize();
+    m_pointPod->Initialize();
 }
 
 void SwerveDrive::Periodic() {
     // Put code here to be run every loop
-    
 }
 
 void SwerveDrive::SimulationPeriodic() {
     // This method will be called once per scheduler run when in simulation
-
 }
 
 void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
@@ -88,15 +82,9 @@ void SwerveDrive::DrivePods(double forward, double strafe, double rotation) {
         (units::angular_velocity::radians_per_second_t)(rotation*transform)};
     
     // returns each pods state (speed, angle)
-    // auto [front, backLeft, backRight] = m_kinematics->ToSwerveModuleStates(speeds);
-    auto [front, rear] = m_kinematics->ToSwerveModuleStates(speeds);
+    auto [right, left, point] = m_kinematics->ToSwerveModuleStates(speeds);
 
-    m_frontPod->Drive(front);
-
-    //m_frontPod->Drive(front);
-    //m_rearPod->Drive(rear);
-    //m_backLeftPod->Drive(backLeft);
-    //m_backRightPod->Drive(backRight);
-
+    m_rightPod->Drive(right);
+    m_leftPod->Drive(left);
+    m_pointPod->Drive(point);
 }
-
